@@ -1,4 +1,5 @@
 # External-Script-Support
-Support for external scripts used in ROBLOX studio.
+Support for external scripts used in ROBLOX studio. Please note that I have not had the opportunity to bug test this yet.
 
-This is currently **incomplete**. An accompanying plugin will be added shortly.
+- Download ROBLOX Plugin: http://www.roblox.com/--item?id=272273281
+- Download Executable Jar: ExtSS-1.0.jar
