@@ -45,9 +45,10 @@ public class Launcher {
 				window.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 				
 				final PopupMenu popup = new PopupMenu();
-				TrayIcon icon = new TrayIcon(Images.scriptIcons[2].getScaledInstance(new TrayIcon(Images.scriptIcons[2]).getSize().width, -1, Image.SCALE_SMOOTH));
 				SystemTray tray = SystemTray.getSystemTray();
 				
+				TrayIcon icon = new TrayIcon(Images.scriptIcons[2].getScaledInstance(new TrayIcon(Images.scriptIcons[2]).getSize().width, -1, Image.SCALE_SMOOTH));
+				icon.setToolTip("External Script Support");
 				icon.addMouseListener(new MouseAdapter() {
 					@Override
 					public void mouseClicked(MouseEvent e) {

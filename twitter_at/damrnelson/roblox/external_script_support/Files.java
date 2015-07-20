@@ -20,6 +20,8 @@ public class Files {
 	public static File scriptFile;
 	public static ArrayList<ScriptInfo> scriptList = new ArrayList<ScriptInfo>();
 	
+	public static boolean scriptsChanged = false;
+	
 	public static void init() throws IOException {
 		if (System.getProperty("os.name").toUpperCase().contains("WIN")) {
 			baseDir = new File(System.getenv("appdata") + "/RobloxExternalScriptSupport");
@@ -66,6 +68,12 @@ public class Files {
 		} finally {
 			in.close();
 		}
+		
+		new Thread() {
+			public void run() {
+				
+			}
+		}.start();
 	}
 	
 	public static void saveProperties() {

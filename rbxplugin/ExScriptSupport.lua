@@ -1,11 +1,7 @@
 --[[
 
 	DaMrNelson's External Script Support Plugin
-	Hopefully I'll remember to link the github for the accompanying program here.
-
-	TODO
-		- Make setting the path actually work
-		- X button for main frame
+	github/DaMrNelson/External-Script-Support
 
 ]]
 
@@ -13,16 +9,20 @@ local HttpService = game:GetService("HttpService")
 local InputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local Selection = game:GetService("Selection")
 
 local boxChecked = "rbxassetid://203550339"
 local boxUnchecked = "rbxassetid://203550334"
 
-local gui = script.Parent:WaitForChild("ESS")
+local gui = script:WaitForChild("ESS")
+gui.Parent = game:GetService("CoreGui")
+script.Parent = nil
 
 local removeAllMain = gui:WaitForChild("RemoveAllConfirm")
 local createMain = gui:WaitForChild("CreateDialog")
 
-local body = gui:WaitForChild("Main"):WaitForChild("Body")
+local gMain = gui:WaitForChild("Main")
+local body = gMain:WaitForChild("Body")
 local main = body:WaitForChild("MainContent")
 local listContainer = main:WaitForChild("List")
 local list = listContainer:WaitForChild("DrawableArea")
@@ -35,6 +35,9 @@ local enabledIcon = info:WaitForChild("EnabledIcon")
 local pathButton = info:WaitForChild("SetPath")
 local pathDisplay = info:WaitForChild("PathDisplay")
 local iRemove = info:WaitForChild("Delete")
+
+local isEnabled
+local listModified
 
 local links = {}
 local currentLink
@@ -81,6 +84,10 @@ function rethinkList()
 			end
 		end)
 
+		if link == currentLink then
+			display.Hover.Visible = true
+		end
+
 		display.Position = UDim2.new(0, 0, 0, 21 * (i - 1))
 		display.Parent = list
 		link[4] = display
@@ -126,6 +133,8 @@ function save()
 		enabled.Name = "Enabled"
 		enabled.Value = link[3]
 	end
+
+	listModified = true
 end
 
 function load()
@@ -169,6 +178,38 @@ function rethinkInfo()
 		enabledIcon.Image = boxUnchecked
 	end
 end
+
+-- Plugin buttons
+
+local toolbar = plugin:CreateToolbar("Script Support")
+
+local toggleGui = toolbar:CreateButton("GUI", "Show or hide the control GUI.", "") -- TODO: Icon
+toggleGui.Click:connect(function()
+	gMain.Visible = not gMain.Visible
+	toggleGui:SetActive(gMain.Visible)
+end)
+
+local toggleEnabled = toolbar:CreateButton("Active", "Toggle if external scripts are enabled or not.", "") -- TODO: Icon
+toggleEnabled.Click:connect(function()
+	isEnabled = not isEnabled
+	toggleEnabled:SetActive(isEnabled)
+end)
+
+coroutine.resume(coroutine.create(function()
+	local enabled, err = pcall(function() HttpService:GetAsync("http://localhost:8440/") end)
+	isEnabled = enabled
+	toggleEnabled:SetActive(isEnabled)
+
+	if not enabled then
+		if err == "Http requests are not enabled" then
+			print("External script support: Please enable HTTP requests to use external script support. Check HttpService.HttpEnabled, then re-enable the plugin from the plugins tab.")
+		elseif err:sub(1, 10) == "CURL error" and err:match("Couldn't connect to server") then
+			print("External script support: The web server is not started. Make sure you are running the support program on your computer, then re-enable the plugin from the plugins tab.")
+		else
+			print("External script support: Unkown error.", err)
+		end
+	end
+end))
 
 do -- Animate scroll bar
 	local listScroll = listContainer:WaitForChild("ScrollBar")
@@ -302,7 +343,7 @@ do -- Header buttons
 	end)
 
 	headerButtons:WaitForChild("Help").MouseButton1Click:connect(function()
-		-- TODO: Display GUI
+		gui:WaitForChild("HelpDialog").Visible = true
 	end)
 end
 
@@ -327,18 +368,60 @@ do -- Dialog animation
 	end)
 	
 	local createSection = createMain:WaitForChild("Body"):WaitForChild("Section")
+	local selectedObject
 
 	createMain:WaitForChild("Header"):WaitForChild("Close").MouseButton1Click:connect(function()
 		createMain.Visible = false
 	end)
-		
+
+	createSection:WaitForChild("SetPath").MouseButton1Click:connect(function()
+		local sel = Selection:Get()
+
+		if #sel == 1 and sel[1]:IsA("BaseScript") then
+			selectedObject = sel[1]
+			createSection.PathDisplay.Text = selectedObject:GetFullName()
+		else
+			selectedObject = nil
+			createSection.PathDisplay.Text = "Select in explorer"
+		end
+	end)
+
 	createSection:WaitForChild("Create").MouseButton1Click:connect(function()
-		-- TODO
-		createMain.Visible = false
+		local id = createSection.IDHolder.Input.Text
+
+		if id == "" or id == "ID Required " then
+			createSection.IDHolder.Input.Text = "ID Required "
+		elseif id:lower() == "wait-page" or id == "ID cannot be 'wait-page' " then
+			createSection.IDHolder.Input.Text = "ID cannot be 'wait-page' "
+		else
+			if selectedObject then
+				local link = {id, selectedObject, true}
+				table.insert(links, link)
+
+				createMain.Visible = false
+				createSection.PathDisplay.Text = "Select in explorer"
+				selectedObject = nil
+				currentLink = link
+
+				save()
+				rethinkList()
+				rethinkInfo()
+			else
+				createSection.PathDisplay.Text = "* Select in explorer"
+			end
+		end
 	end)
 	
 	createSection:WaitForChild("Cancel").MouseButton1Click:connect(function()
 		createMain.Visible = false
+	end)
+
+	gui:WaitForChild("HelpDialog").Header.Close.MouseButton1Click:connect(function()
+		gui.HelpDialog.Visible = false
+	end)
+
+	gui.HelpDialog.Body.Section.Close.MouseButton1Click:connect(function()
+		gui.HelpDialog.Visible = false
 	end)
 end
 
@@ -364,7 +447,13 @@ do -- Input buttons
 
 	pathButton.MouseButton1Click:connect(function()
 		if currentLink then
-			print("Uh oh, I forgot to do this. Please message DaMrNelson so I can go do it.") -- TODO: This function
+			local sel = Selection:Get()
+
+			if #sel == 1 and sel[1]:IsA("BaseScript") then
+				currentLink[2] = sel[1]
+				save()
+				rethinkInfo()
+			end
 		end
 	end)
 
@@ -393,5 +482,77 @@ do -- Content providing
 	end
 end
 
+gMain.Header.Close.MouseButton1Click:connect(function()
+	gMain.Visible = false
+end)
+
 load()
 rethinkList()
+
+do -- Main service
+	local function getScript(id)
+		local worked, content = pcall(function() return HttpService:GetAsync("http://localhost:8440/" .. id, true) end)
+
+		if worked then
+			if content:sub(1, 8) == "SCRIPT: " then
+
+			elseif content:sub(1, 7) == "ERROR: " then
+				print("External script support: Server returned error.", content)
+			else
+				print("External script support: Unkown response.", content)
+			end
+		else
+			if content == "Http requests are not enabled" then
+				print("External script support: Please enable HTTP requests to use external script support. Check HttpService.HttpEnabled, then re-enable the plugin from the plugins tab.")
+			elseif content:sub(1, 10) == "CURL error" and content:match("Couldn't connect to server") then
+				print("External script support: The web server is not started. Make sure you are running the support program on your computer, then re-enable the plugin from the plugins tab.")
+			else
+				print("External script support: Unkown error.", content)
+			end
+
+			isEnabled = false
+			toggleEnabled:SetActive(false)
+		end
+
+		return worked and content:sub(9) or false
+	end
+
+	while isEnabled == nil do -- Wait until isEnabled has been set to true or false
+		wait()
+	end
+
+	while wait() do
+		if isEnabled then
+			for i, link in pairs(links) do
+				if link[3] then
+					local script = getScript(link[1])
+
+					if script == false then
+						break
+					else
+						link[2].Source = script
+					end
+				end
+			end
+
+			if isEnabled then
+				-- Wait for changes, or timeout
+				local completed = false
+				
+				coroutine.resume(coroutine.create(function()
+					pcall(function() return HttpService:GetAsync("http://localhost:8440/wait-page", true) end)
+					completed = true
+				end))
+
+				for i = 1, 100 do -- Wait 10 seconds max, checking every 0.1 seconds
+					wait(0.1)
+
+					if listModified or completed then
+						listModified = false
+						break
+					end
+				end
+			end
+		end
+	end
+end

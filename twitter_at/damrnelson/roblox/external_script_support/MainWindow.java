@@ -33,7 +33,7 @@ import com.oracle.SpringUtilities;
 
 public class MainWindow extends JFrame {
 	
-	public String[] infoLabels = {"File ID", "File Name", "File Path"};
+	public String[] infoLabels = {"Script ID", "File Name", "File Path"};
 	public JLabel[] iLabels = new JLabel[4]; // 3 + 1 for error label
 	public JTextField[] iBoxes = new JTextField[3];
 	
@@ -73,6 +73,7 @@ public class MainWindow extends JFrame {
 				int index = selectionList.getSelectedIndex();
 				
 				if (index >= 0) {
+					Files.scriptList.get(index).disconnect();
 					Files.scriptList.remove(index);
 					Files.saveScripts();
 					updateScriptList();
@@ -193,7 +194,9 @@ public class MainWindow extends JFrame {
 		delete.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Files.scriptList.remove(selectionList.getSelectedIndex());
+				int index = selectionList.getSelectedIndex();
+				Files.scriptList.get(index).disconnect();
+				Files.scriptList.remove(index);
 				Files.saveScripts();
 				updateScriptList();
 			}
@@ -333,7 +336,6 @@ public class MainWindow extends JFrame {
 					errorLabel.setVisible(true);
 					errorLabel.setText("No ID entered.");
 					dialog.pack();
-					// TODO: Display error
 				} else if (id.contains("*")) {
 					errorLabel.setVisible(true);
 					errorLabel.setText("ID cannot contain '*'.");
@@ -365,7 +367,7 @@ public class MainWindow extends JFrame {
 						} else {
 							ScriptInfo info = new ScriptInfo(file[0], id);
 							Files.scriptList.add(info);
-							Files.saveScripts(); // TODO: Make sure this method is implemented
+							Files.saveScripts();
 							
 							updateScriptList();
 							selectionList.setSelectedIndex(Files.scriptList.size() - 1);

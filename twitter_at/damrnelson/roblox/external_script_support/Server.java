@@ -10,7 +10,7 @@ import java.net.Socket;
 import twitter_at.damrnelson.general.Errors;
 
 public class Server {
-
+	
 	boolean isRunning = false;
 	public ServerSocket serverSocket;
 	
@@ -67,29 +67,52 @@ public class Server {
 								out.write(getResponse(sections[2], "ERROR: No page requested."));
 							} else {
 								String lowerPage = page.toLowerCase();
-								ScriptInfo info = null;
 								
-								for (ScriptInfo inf : Files.scriptList) {
-									if (inf.id.toLowerCase().equals(lowerPage)) {
-										info = inf;
-										break;
+								if (lowerPage.equals("wait-page")) {
+									s.setKeepAlive(true);
+									
+									try {
+										for (int i = 0; i < 100; i++) { // 100 * 100 = 10,000ms = 10s timeout
+											Thread.sleep(100);
+											
+											if (Files.scriptsChanged || !s.isConnected()) {
+												break;
+											}
+										}
+									} catch (Exception e) {
+										e.printStackTrace();
 									}
-								}
-								
-								if (info == null) {
-									out.write(getResponse(sections[2], "ERROR: No match for ID " + page + "."));
+									
+									if (Files.scriptsChanged && s.isConnected()) {
+										Files.scriptsChanged = false;
+									}
+									
+									out.write(getResponse(sections[2], String.valueOf(Files.scriptsChanged)));
 								} else {
-									FileInputStream in2 = new FileInputStream(info.script);
-									byte[] buffer2 = new byte[1024];
-									int len2;
-									String file = "";
+									ScriptInfo info = null;
 									
-									while ((len2 = in2.read(buffer2)) != -1) {
-										file += new String(buffer2, 0, len2);
+									for (ScriptInfo inf : Files.scriptList) {
+										if (inf.id.toLowerCase().equals(lowerPage)) {
+											info = inf;
+											break;
+										}
 									}
 									
-									out.write(getResponse(sections[2], "SCRIPT: " + file));
-									in2.close();
+									if (info == null) {
+										out.write(getResponse(sections[2], "ERROR: No match for ID " + page + "."));
+									} else {
+										FileInputStream in2 = new FileInputStream(info.script);
+										byte[] buffer2 = new byte[1024];
+										int len2;
+										String file = "";
+										
+										while ((len2 = in2.read(buffer2)) != -1) {
+											file += new String(buffer2, 0, len2);
+										}
+										
+										out.write(getResponse(sections[2], "SCRIPT: " + file));
+										in2.close();
+									}
 								}
 							}
 						} else {
@@ -99,6 +122,7 @@ public class Server {
 					
 					in.close();
 					out.close();
+					s.close();
 				} catch (IOException e) {
 					Errors.error("Unable to handle socket.", e);
 				}
