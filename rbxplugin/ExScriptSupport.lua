@@ -377,7 +377,7 @@ do -- Dialog animation
 	createSection:WaitForChild("SetPath").MouseButton1Click:connect(function()
 		local sel = Selection:Get()
 
-		if #sel == 1 and sel[1]:IsA("BaseScript") then
+		if #sel == 1 and sel[1]:IsA("LuaSourceContainer") then
 			selectedObject = sel[1]
 			createSection.PathDisplay.Text = selectedObject:GetFullName()
 		else
@@ -449,7 +449,7 @@ do -- Input buttons
 		if currentLink then
 			local sel = Selection:Get()
 
-			if #sel == 1 and sel[1]:IsA("BaseScript") then
+			if #sel == 1 and sel[1]:IsA("LuaSourceContainer") then
 				currentLink[2] = sel[1]
 				save()
 				rethinkInfo()
