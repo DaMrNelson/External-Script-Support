@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -38,6 +39,10 @@ public class Server {
 	public void handle(final Socket s) {
 		new Thread() {
 			public void run() {
+				if (!s.getInetAddress().isLoopbackAddress()) { // Ignore any external traffic
+					return;
+				}
+				
 				try {
 					InputStream in = s.getInputStream();
 					byte[] buffer = new byte[1024];
